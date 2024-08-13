@@ -1,19 +1,19 @@
 ﻿int NumRenderedFrames;
 
-texture Texture;
-sampler2D textureSampler = sampler_state
+texture CurrentFrame;
+sampler2D currentFrameSampler = sampler_state
 {
-    Texture = (Texture);
+    Texture = (CurrentFrame);
     MagFilter = Linear;
     MinFilter = Linear;
     AddressU = Clamp;
     AddressV = Clamp;
 };
 
-texture OldTexture;
-sampler2D oldTextureSampler = sampler_state
+texture PreviousFrame;
+sampler2D previousFrameSampler = sampler_state
 {
-    Texture = (OldTexture);
+    Texture = (PreviousFrame);
     MagFilter = Linear;
     MinFilter = Linear;
     AddressU = Clamp;
@@ -44,11 +44,11 @@ VertexShaderOutput MainVS(VertexShaderInput input)
 
 float4 MainPS(VertexShaderOutput input) : COLOR0
 {
-    float4 oldRender = tex2D(oldTextureSampler, input.TextureCoordinates);
-    float4 newRender = tex2D(textureSampler, input.TextureCoordinates);
+    float4 oldRender = tex2D(previousFrameSampler, input.TextureCoordinates);
+    float4 newRender = tex2D(currentFrameSampler, input.TextureCoordinates);
     
     float weight = 1.0 / (NumRenderedFrames + 1);
-    float4 accumulatedAverage = oldRender * (1 - weight) + newRender * weight;
+    float4 accumulatedAverage = saturate(oldRender * (1 - weight) + newRender * weight);
     
     return accumulatedAverage;
 }

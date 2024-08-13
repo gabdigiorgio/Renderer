@@ -264,18 +264,6 @@ float4 RayTracingPS(VertexShaderOutput input) : COLOR0
     float3 pixelCol = totalIncomingLight / NumRaysPerPixel; 
     return float4(pixelCol, 1);
 }
-
-
-float4 ScreenPS(VertexShaderOutput input) : COLOR0
-{
-    float4 oldRender = tex2D(oldTextureSampler, input.TextureCoordinates);
-    float4 newRender = tex2D(textureSampler, input.TextureCoordinates);
-    
-    float weight = 1.0 / (NumRenderedFrames + 1);
-    float4 accumulatedAverage = oldRender * (1 - weight) + newRender * weight;
-    
-    return accumulatedAverage;
-}
  
 technique RayTracing
 {
@@ -283,14 +271,5 @@ technique RayTracing
     {
         VertexShader = compile vs_5_0 MainVS();
         PixelShader = compile ps_5_0 RayTracingPS();
-    }
-}
-
-technique Screen
-{
-    pass Pass0
-    {
-        VertexShader = compile vs_5_0 MainVS();
-        PixelShader = compile ps_5_0 ScreenPS();
     }
 }

@@ -19,11 +19,11 @@
 /processorParam:DebugMode=Auto
 /build:Effects/BlinnPhong.fx
 
-#begin Effects/Denoiser.fx
+#begin Effects/Denoise.fx
 /importer:EffectImporter
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
-/build:Effects/Denoiser.fx
+/build:Effects/Denoise.fx
 
 #begin Effects/RayTracing.fx
 /importer:EffectImporter

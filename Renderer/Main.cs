@@ -22,7 +22,9 @@ namespace Renderer
         private FullScreenQuad _fullScreenQuad;
         private RenderTarget2D _currentFrame;
         private RenderTarget2D _previousFrame;
+        private RenderTarget2D _accumulatedFrame;
         private Effect _rayTracingEffect;
+        private Effect _denoiseEffect;
         private SpriteBatch _spriteBatch;
 
         private int _numRenderedFrames;
@@ -54,6 +56,10 @@ namespace Renderer
             _previousFrame = new RenderTarget2D(GraphicsDevice, GraphicsDevice.Viewport.Width, 
                 GraphicsDevice.Viewport.Height, false, SurfaceFormat.Color, 
                 DepthFormat.Depth24Stencil8, 0, RenderTargetUsage.DiscardContents);
+            
+            _accumulatedFrame = new RenderTarget2D(GraphicsDevice, GraphicsDevice.Viewport.Width, 
+                GraphicsDevice.Viewport.Height, false, SurfaceFormat.Color, 
+                DepthFormat.Depth24Stencil8, 0, RenderTargetUsage.DiscardContents);
 
             GuiRenderer = new ImGuiRenderer(this);
 
@@ -65,6 +71,7 @@ namespace Renderer
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             
             _rayTracingEffect = Content.Load<Effect>(ContentFolderEffects + "RayTracing");
+            _denoiseEffect = Content.Load<Effect>(ContentFolderEffects + "Denoise");
             
             GuiRenderer.RebuildFontAtlas();
             
@@ -86,31 +93,41 @@ namespace Renderer
         
         protected override void Draw(GameTime gameTime)
         {
-            CopyRenderTarget(_currentFrame, _previousFrame);
-            
+            // Render scene
             GraphicsDevice.SetRenderTarget(_currentFrame);
             GraphicsDevice.Clear(Color.Black);
-            DrawScene();
+            DrawRayTracedScene();
             
-            DrawToScreen();
+            // Accumulate frame
+            GraphicsDevice.SetRenderTarget(_accumulatedFrame);
+            GraphicsDevice.Clear(Color.Black);
+            _denoiseEffect.CurrentTechnique = _denoiseEffect.Techniques["Denoise"];
+            _denoiseEffect.Parameters["CurrentFrame"].SetValue(_currentFrame);
+            _denoiseEffect.Parameters["PreviousFrame"].SetValue(_previousFrame);
+            _denoiseEffect.Parameters["NumRenderedFrames"].SetValue(_numRenderedFrames);
+            _fullScreenQuad.Draw(_denoiseEffect);
             
-            DrawGui(gameTime);
+            // Copy result to _previousFrame
+            GraphicsDevice.SetRenderTarget(_previousFrame);
+            GraphicsDevice.Clear(Color.Black);
+            _spriteBatch.Begin();
+            _spriteBatch.Draw(_accumulatedFrame, GraphicsDevice.Viewport.Bounds, Color.White);
+            _spriteBatch.End();
+            
+            // Draw to screen
+            GraphicsDevice.SetRenderTarget(null);
+            GraphicsDevice.Clear(Color.Black);
+            _spriteBatch.Begin();
+            _spriteBatch.Draw(_accumulatedFrame, GraphicsDevice.Viewport.Bounds, Color.White);
+            _spriteBatch.End();
 
             _numRenderedFrames++;
+            
+            DrawGui(gameTime);
             base.Draw(gameTime);
         }
-        
-        private void CopyRenderTarget(Texture2D source, RenderTarget2D destination)
-        {
-            GraphicsDevice.SetRenderTarget(destination);
-            GraphicsDevice.Clear(Color.Black);
 
-            _spriteBatch.Begin();
-            _spriteBatch.Draw(source, Vector2.Zero, Color.White);
-            _spriteBatch.End();
-        }
-
-        private void DrawScene()
+        private void DrawRayTracedScene()
         {
             _rayTracingEffect.CurrentTechnique = _rayTracingEffect.Techniques["RayTracing"];
             
@@ -130,14 +147,9 @@ namespace Renderer
         
         private void DrawToScreen()
         {
-            GraphicsDevice.SetRenderTarget(null);
-            GraphicsDevice.Clear(Color.Black);
-            
-            _rayTracingEffect.CurrentTechnique = _rayTracingEffect.Techniques["Screen"];
-            _rayTracingEffect.Parameters["OldTexture"].SetValue(_previousFrame);
-            _rayTracingEffect.Parameters["Texture"].SetValue(_currentFrame);
-            _rayTracingEffect.Parameters["NumRenderedFrames"].SetValue(_numRenderedFrames);
-            _fullScreenQuad.Draw(_rayTracingEffect);
+            _spriteBatch.Begin();
+            _spriteBatch.Draw(_currentFrame, GraphicsDevice.Viewport.Bounds, Color.White);
+            _spriteBatch.End();
         }
         
         private void DrawGui(GameTime gameTime)
@@ -164,6 +176,7 @@ namespace Renderer
         {
             _currentFrame.Dispose();
             _previousFrame.Dispose();
+            _accumulatedFrame.Dispose();
             base.UnloadContent();
         }
     }
