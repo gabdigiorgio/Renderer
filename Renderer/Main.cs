@@ -96,6 +96,7 @@ namespace Renderer
             // Render scene
             DrawRayTracedScene();
             
+            // Accumulate based on rendered frames
             AccumulateFrames();
 
             // Copy result to _previousFrame
@@ -104,7 +105,7 @@ namespace Renderer
             // Draw to screen
             DrawToScreen();
 
-            _numRenderedFrames++;
+            _numRenderedFrames = !_freeCamera.HasChanged() ? _numRenderedFrames + 1 : 1;
             
             DrawGui(gameTime);
             base.Draw(gameTime);

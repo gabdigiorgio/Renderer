@@ -133,5 +133,10 @@ namespace Renderer.Cameras
             RightDirection = Vector3.Normalize(Vector3.Cross(FrontDirection, Vector3.Up));
             UpDirection = Vector3.Normalize(Vector3.Cross(RightDirection, FrontDirection));
         }
+
+        public bool HasChanged()
+        {
+            return changed;
+        }
     }
 }
