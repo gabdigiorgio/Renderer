@@ -117,6 +117,33 @@ float3 RandomHemisphereDirection(float3 normal, inout uint rngState)
     return dir * sign(dot(normal, dir));
 }
 
+HitInfo RaySphere(Ray ray, float3 sphereCenter, float sphereRadius)
+{
+    HitInfo hitInfo = (HitInfo) 0;
+    
+    float3 offsetRayOrigin = ray.Origin - sphereCenter;
+    float a = dot(ray.Dir, ray.Dir);
+    float b = 2 * dot(offsetRayOrigin, ray.Dir);
+    float c = dot(offsetRayOrigin, offsetRayOrigin) - sphereRadius * sphereRadius;
+    
+    float discriminant = b * b - 4 * a * c;
+    
+    if (discriminant >= 0)
+    {
+        float distance = (-b - sqrt(discriminant)) / (2 * a);
+        
+        if (distance >= 0)
+        {
+            hitInfo.DidHit = true;
+            hitInfo.Distance = distance;
+            hitInfo.HitPoint = ray.Origin + ray.Dir * distance;
+            hitInfo.Normal = normalize(hitInfo.HitPoint - sphereCenter);
+        }
+    }
+    
+    return hitInfo;
+}
+
 HitInfo RayPlane(Ray ray, float3 planeCenter, float3 planeNormal, float size)
 {
     HitInfo hitInfo = (HitInfo) 0;
@@ -145,33 +172,6 @@ HitInfo RayPlane(Ray ray, float3 planeCenter, float3 planeNormal, float size)
     return hitInfo;
 }
 
-HitInfo RaySphere(Ray ray, float3 sphereCenter, float sphereRadius)
-{
-    HitInfo hitInfo = (HitInfo) 0;
-    
-    float3 offsetRayOrigin = ray.Origin - sphereCenter;
-    float a = dot(ray.Dir, ray.Dir);
-    float b = 2 * dot(offsetRayOrigin, ray.Dir);
-    float c = dot(offsetRayOrigin, offsetRayOrigin) - sphereRadius * sphereRadius;
-    
-    float discriminant = b * b - 4 * a * c;
-    
-    if (discriminant >= 0)
-    {
-        float distance = (-b - sqrt(discriminant)) / (2 * a);
-        
-        if (distance >= 0)
-        {
-            hitInfo.DidHit = true;
-            hitInfo.Distance = distance;
-            hitInfo.HitPoint = ray.Origin + ray.Dir * distance;
-            hitInfo.Normal = normalize(hitInfo.HitPoint - sphereCenter);
-        }
-    }
-    
-    return hitInfo;
-}
-
 HitInfo CalculateRayCollision(Ray ray)
 {
     HitInfo closestHit = (HitInfo) 0;
@@ -193,13 +193,13 @@ HitInfo CalculateRayCollision(Ray ray)
         }
     }
     
-    HitInfo hitInfo = RayPlane(ray, float3(0, -150, 100), float3(1, 0, 0), 100);
+    HitInfo hitInfo = RayPlane(ray, float3(85.0f, 25.0f, -50.0f), float3(1.0f, 0.0f, 0.0f), 100.0f);
     if (hitInfo.DidHit && hitInfo.Distance < closestHit.Distance)
     {
         closestHit = hitInfo;
-        closestHit.Color = float4(0.0f, 1.0f, 0.0f, 1.0f);
+        closestHit.Color = float4(0.5f, 0.5f, 0.5f, 1.0f);
         //closestHit.EmissionColor = 0.0f;
-        //losestHit.EmissionStrength = 0.0f;
+        //closestHit.EmissionStrength = 0.0f;
     }
 
     return closestHit;

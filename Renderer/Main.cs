@@ -85,7 +85,8 @@ namespace Renderer
             var keyboardState = Keyboard.GetState();
             
             _freeCamera.Update(gameTime);
-            Console.WriteLine(_freeCamera.Position);
+            Console.WriteLine("Position: " + _freeCamera.Position);
+            Console.WriteLine("Direction: " + _freeCamera.FrontDirection);
             
             if (keyboardState.IsKeyDown(Keys.Escape))
             {
@@ -177,8 +178,15 @@ namespace Renderer
             ImGui.Text($"Framerate: {gameTime.ElapsedGameTime.TotalSeconds * 1000:0.0} ms");
             ImGui.Text($"Accumulated frames: {_numRenderedFrames}");
             
+            ImGui.Separator();
+            ImGui.Text("Ray Tracing Settings");
             ImGui.DragInt("Max Bounce Count", ref _maxBounceCount, 1, 1, 500);
             ImGui.DragInt("Numbers of Rays Per Pixel", ref _numRaysPerPixel, 1, 1, 300);
+            
+            ImGui.Separator();
+            ImGui.Text("Camera Information");
+            ImGui.Text($"Camera Front Direction: {_freeCamera.FrontDirection}");
+            ImGui.Text($"Camera Position: {_freeCamera.Position}");
             
             ImGui.End();
 
