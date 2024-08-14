@@ -6,6 +6,8 @@ using Microsoft.Xna.Framework.Input;
 using MonoGame.ImGuiNet;
 using Renderer.Cameras;
 using Renderer.Geometries;
+using SharpDX.Direct3D9;
+using Effect = Microsoft.Xna.Framework.Graphics.Effect;
 
 namespace Renderer
 {
@@ -83,7 +85,8 @@ namespace Renderer
             var keyboardState = Keyboard.GetState();
             
             _freeCamera.Update(gameTime);
-
+            Console.WriteLine(_freeCamera.Position);
+            
             if (keyboardState.IsKeyDown(Keys.Escape))
             {
                 Exit();

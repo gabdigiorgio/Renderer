@@ -1,4 +1,5 @@
 ﻿#define FLT_MAX 3.40282347e+38
+#define PLANE_EPSILON 0.0001f
 #define NUM_SPHERES 5
 
 float4x4 InverseView;
@@ -12,26 +13,6 @@ int MaxBounceCount;
 int NumRaysPerPixel;
 int Frame;
 int NumRenderedFrames;
-
-texture Texture;
-sampler2D textureSampler = sampler_state
-{
-    Texture = (Texture);
-    MagFilter = Linear;
-    MinFilter = Linear;
-    AddressU = Clamp;
-    AddressV = Clamp;
-};
-
-texture OldTexture;
-sampler2D oldTextureSampler = sampler_state
-{
-    Texture = (OldTexture);
-    MagFilter = Linear;
-    MinFilter = Linear;
-    AddressU = Clamp;
-    AddressV = Clamp;
-};
 
 struct Sphere
 {
@@ -62,21 +43,21 @@ struct HitInfo
 static Sphere spheres[NUM_SPHERES] =
 {
     {
-        float3(-100.0f, 135.0f, -40.0f), // Position
+        float3(-100.0f, 10.0f, -40.0f), // Position
         30.0f, // Radius
         float4(0.0f, 1.0f, 0.0f, 1.0f), // Color
         float4(0.0f, 0.0f, 0.0f, 0.0f), // Emission color (default)
         0.0f // Emission strength (default)
     },
     {
-        float3(-50.0f, 150.0f, 100.0f), // Position
+        float3(-50.0f, 5.0f, 100.0f), // Position
         20.0f, // Radius
         float4(1.0f, 0.0f, 0.0f, 1.0f), // Color
         float4(0.0f, 0.0f, 0.0f, 0.0f), // Emission color (default)
         0.0f // Emission strength (default)
     },
     {
-        float3(50.0f, 130.0f, 0.0f), // Position
+        float3(50.0f, 20.0f, 0.0f), // Position
         25.0f, // Radius
         float4(0.0f, 0.0f, 1.0f, 1.0f), // Color
         float4(0.0f, 0.0f, 0.0f, 0.0f), // Emission color (default)
@@ -84,14 +65,14 @@ static Sphere spheres[NUM_SPHERES] =
     },
     {
         // LIGHT
-        float3(350.0f, 120.0f, 0.0f), // Position
+        float3(350.0f, 20.0f, 0.0f), // Position
         120.0f,
         float4(1.0f, 1.0f, 1.0f, 1.0f), // Color
-        float4(1.0f, 1.0f, 1.8f, 1.0f), // Emission color
+        float4(1.0f, 1.0f, 1.0f, 1.0f), // Emission color
         10.0f // Emission strength
     },
     {
-        float3(0.0f, 600.0f, 0.0f), // Position
+        float3(0.0f, -450.0f, 0.0f), // Position
         450.0f,
         float4(0.5f, 0.0f, 0.5f, 1.0f), // Color
         float4(0.0f, 0.0f, 0.0f, 0.0f), // Emission color (default)
@@ -134,6 +115,34 @@ float3 RandomHemisphereDirection(float3 normal, inout uint rngState)
 {
     float3 dir = RandomDirection(rngState);
     return dir * sign(dot(normal, dir));
+}
+
+HitInfo RayPlane(Ray ray, float3 planeCenter, float3 planeNormal, float size)
+{
+    HitInfo hitInfo = (HitInfo) 0;
+    
+    float denom = dot(planeNormal, ray.Dir);
+    
+    if (abs(denom) > PLANE_EPSILON)
+    {
+        float t = dot((planeCenter - ray.Origin), planeNormal) / denom;
+        if (t >= 0)
+        {
+            float3 hitPoint = ray.Origin + t * ray.Dir;
+            float3 localHitPoint = hitPoint - planeCenter;
+            float halfSize = size * 0.5f;
+            
+            if (abs(localHitPoint.x) <= halfSize && abs(localHitPoint.y) <= halfSize && abs(localHitPoint.z) <= halfSize)
+            {
+                hitInfo.DidHit = true;
+                hitInfo.Distance = t;
+                hitInfo.HitPoint = hitPoint;
+                hitInfo.Normal = normalize(planeNormal);
+            }
+        }
+    }
+    
+    return hitInfo;
 }
 
 HitInfo RaySphere(Ray ray, float3 sphereCenter, float sphereRadius)
@@ -183,6 +192,15 @@ HitInfo CalculateRayCollision(Ray ray)
             closestHit.EmissionStrength = sphere.EmissionStrength;
         }
     }
+    
+    HitInfo hitInfo = RayPlane(ray, float3(0, -150, 100), float3(1, 0, 0), 100);
+    if (hitInfo.DidHit && hitInfo.Distance < closestHit.Distance)
+    {
+        closestHit = hitInfo;
+        closestHit.Color = float4(0.0f, 1.0f, 0.0f, 1.0f);
+        //closestHit.EmissionColor = 0.0f;
+        //losestHit.EmissionStrength = 0.0f;
+    }
 
     return closestHit;
 }
@@ -198,7 +216,7 @@ float3 Trace(Ray ray, inout uint rngState)
         if (hitInfo.DidHit)
         {
             ray.Origin = hitInfo.HitPoint;
-            ray.Dir = RandomHemisphereDirection(hitInfo.Normal, rngState);
+            ray.Dir = normalize(hitInfo.Normal + RandomDirection(rngState));
             
             float3 emittedLight = hitInfo.EmissionColor * hitInfo.EmissionStrength;
             incomingLight += emittedLight * rayColor;
@@ -238,12 +256,13 @@ VertexShaderOutput MainVS(VertexShaderInput input)
 float4 RayTracingPS(VertexShaderOutput input) : COLOR0
 {
     float2 uv = input.TextureCoordinates;
+    uv.y = 1.0 - uv.y;
     
     // Seed for random numbers
     uint2 numpixels = uint2(ViewportWidth, ViewportHeight);
     uint2 pixelCoord = uv * numpixels;
     uint pixelindex = pixelCoord.y * numpixels.x + pixelCoord.x;
-    uint rngState = pixelindex + Frame * 719393;
+    uint rngState = pixelindex + Frame * 845459; // Random number
 
     float4 clipSpacePos = float4(uv * 2.0f - 1.0f, 0.0f, 1.0f);
 
