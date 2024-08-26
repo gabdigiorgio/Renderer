@@ -193,14 +193,14 @@ HitInfo CalculateRayCollision(Ray ray)
         }
     }
     
-    HitInfo hitInfo = RayPlane(ray, float3(85.0f, 25.0f, -50.0f), float3(1.0f, 0.0f, 0.0f), 100.0f);
-    if (hitInfo.DidHit && hitInfo.Distance < closestHit.Distance)
-    {
-        closestHit = hitInfo;
-        closestHit.Color = float4(0.5f, 0.5f, 0.5f, 1.0f);
-        //closestHit.EmissionColor = 0.0f;
-        //closestHit.EmissionStrength = 0.0f;
-    }
+    //HitInfo hitInfo = RayPlane(ray, float3(85.0f, 25.0f, -50.0f), float3(1.0f, 0.0f, 0.0f), 100.0f);
+    //if (hitInfo.DidHit && hitInfo.Distance < closestHit.Distance)
+    //{
+    //    closestHit = hitInfo;
+    //    closestHit.Color = float4(0.5f, 0.5f, 0.5f, 1.0f);
+    //    closestHit.EmissionColor = 0.0f;
+    //    closestHit.EmissionStrength = 0.0f;
+    //}
 
     return closestHit;
 }

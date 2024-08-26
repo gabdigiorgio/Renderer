@@ -85,8 +85,6 @@ namespace Renderer
             var keyboardState = Keyboard.GetState();
             
             _freeCamera.Update(gameTime);
-            Console.WriteLine("Position: " + _freeCamera.Position);
-            Console.WriteLine("Direction: " + _freeCamera.FrontDirection);
             
             if (keyboardState.IsKeyDown(Keys.Escape))
             {
@@ -125,7 +123,7 @@ namespace Renderer
             _spriteBatch.End();
         }
 
-        private void CopyRenderTarget(RenderTarget2D source, RenderTarget2D destination)
+        private void CopyRenderTarget(Texture2D source, RenderTarget2D destination)
         {
             GraphicsDevice.SetRenderTarget(destination);
             GraphicsDevice.Clear(Color.Black);
@@ -175,7 +173,7 @@ namespace Renderer
             ImGui.SetWindowSize(new System.Numerics.Vector2(400, 200));
             
             ImGui.Text($"FPS: {1.0 / gameTime.ElapsedGameTime.TotalSeconds:0.0}");
-            ImGui.Text($"Framerate: {gameTime.ElapsedGameTime.TotalSeconds * 1000:0.0} ms");
+            ImGui.Text($"Application average: {gameTime.ElapsedGameTime.TotalSeconds * 1000:0.0} ms");
             ImGui.Text($"Accumulated frames: {_numRenderedFrames}");
             
             ImGui.Separator();
