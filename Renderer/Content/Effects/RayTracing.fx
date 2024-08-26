@@ -21,6 +21,7 @@ struct Sphere
     float4 Color;
     float4 EmissionColor;
     float EmissionStrength;
+    float Smoothness;
 };
 
 struct Ray
@@ -38,6 +39,7 @@ struct HitInfo
     float4 Color;
     float4 EmissionColor;
     float EmissionStrength;
+    float Smoothness;
 };
 
 static Sphere spheres[NUM_SPHERES] =
@@ -47,36 +49,41 @@ static Sphere spheres[NUM_SPHERES] =
         30.0f, // Radius
         float4(0.0f, 1.0f, 0.0f, 1.0f), // Color
         float4(0.0f, 0.0f, 0.0f, 0.0f), // Emission color (default)
-        0.0f // Emission strength (default)
+        0.0f, // Emission strength (default)
+        1.0f // Smoothness
     },
     {
         float3(-50.0f, 5.0f, 100.0f), // Position
         20.0f, // Radius
         float4(1.0f, 0.0f, 0.0f, 1.0f), // Color
         float4(0.0f, 0.0f, 0.0f, 0.0f), // Emission color (default)
-        0.0f // Emission strength (default)
+        0.0f, // Emission strength (default)
+        0.7f // Smoothness
     },
     {
         float3(50.0f, 20.0f, 0.0f), // Position
         25.0f, // Radius
         float4(0.0f, 0.0f, 1.0f, 1.0f), // Color
         float4(0.0f, 0.0f, 0.0f, 0.0f), // Emission color (default)
-        0.0f // Emission strength (default)
+        0.0f, // Emission strength (default)
+        0.4f // Smoothness
     },
     {
-        // LIGHT
+        // LIGHT SOURCE
         float3(350.0f, 20.0f, 0.0f), // Position
         120.0f,
         float4(1.0f, 1.0f, 1.0f, 1.0f), // Color
         float4(1.0f, 1.0f, 1.0f, 1.0f), // Emission color
-        10.0f // Emission strength
+        10.0f, // Emission strength
+        0.0f // Smoothness
     },
     {
         float3(0.0f, -450.0f, 0.0f), // Position
         450.0f,
         float4(0.5f, 0.0f, 0.5f, 1.0f), // Color
         float4(0.0f, 0.0f, 0.0f, 0.0f), // Emission color (default)
-        0.0f // Emission strength (default)
+        0.0f, // Emission strength (default)
+        0.0f // Smoothness
     }
 };
 
@@ -190,6 +197,7 @@ HitInfo CalculateRayCollision(Ray ray)
             closestHit.Color = sphere.Color;
             closestHit.EmissionColor = sphere.EmissionColor;
             closestHit.EmissionStrength = sphere.EmissionStrength;
+            closestHit.Smoothness = sphere.Smoothness;
         }
     }
     
@@ -205,6 +213,17 @@ HitInfo CalculateRayCollision(Ray ray)
     return closestHit;
 }
 
+float3 GetEnvironmentLight(Ray ray)
+{
+    float3 dir = normalize(ray.Dir);
+
+    float3 skyColor = float3(0.2f, 0.3f, 0.6f);
+    float3 horizonColor = float3(0.5f, 0.5f, 0.5f);
+
+    float t = 0.5f * (dir.y + 1.0f);
+    return lerp(horizonColor, skyColor, t);
+}
+
 float3 Trace(Ray ray, inout uint rngState)
 {
     float3 incomingLight = 0;
@@ -213,10 +232,13 @@ float3 Trace(Ray ray, inout uint rngState)
     for (int i = 0; i <= MaxBounceCount; i++)
     {
         HitInfo hitInfo = CalculateRayCollision(ray);
+        
         if (hitInfo.DidHit)
         {
             ray.Origin = hitInfo.HitPoint;
-            ray.Dir = normalize(hitInfo.Normal + RandomDirection(rngState));
+            float3 diffuseDir = normalize(hitInfo.Normal + RandomDirection(rngState));
+            float3 specularDir = reflect(ray.Dir, hitInfo.Normal);
+            ray.Dir = lerp(diffuseDir, specularDir, hitInfo.Smoothness);
             
             float3 emittedLight = hitInfo.EmissionColor * hitInfo.EmissionStrength;
             incomingLight += emittedLight * rayColor;
@@ -224,6 +246,7 @@ float3 Trace(Ray ray, inout uint rngState)
         }
         else
         {
+            incomingLight += GetEnvironmentLight(ray) * rayColor;
             break;
         }
     }
